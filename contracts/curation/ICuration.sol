@@ -25,8 +25,7 @@ interface ICuration {
 
     function burn(
         bytes32 _subgraphDeploymentID,
-        uint256 _signalIn,
-        uint256 _tokensOutMin
+        uint256 _signalIn
     ) external returns (uint256);
 
     function collect(bytes32 _subgraphDeploymentID, uint256 _tokens) external;
@@ -49,7 +48,7 @@ interface ICuration {
         view
         returns (uint256, uint256);
 
-    function signalToTokens(bytes32 _subgraphDeploymentID, uint256 _signalIn)
+    function signalToTokens(bytes32 _subgraphDeploymentID, uint256 _signalIn, address _curator)
         external
         view
         returns (uint256);

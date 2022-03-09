@@ -61,8 +61,7 @@ interface IGNS {
 
     function burnSignal(
         uint256 _subgraphID,
-        uint256 _nSignal,
-        uint256 _tokensOutMin
+        uint256 _nSignal
     ) external;
 
     function withdraw(uint256 _subgraphID) external;

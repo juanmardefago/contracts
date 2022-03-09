@@ -9,5 +9,7 @@ interface IGraphCurationToken is IERC20Upgradeable {
 
     function burnFrom(address _account, uint256 _amount) external;
 
-    function mint(address _to, uint256 _amount) external;
+    function mint(address _to, uint256 _amount, uint256 _grtDeposit) external;
+
+    function getDepositDelta(address _account, uint256 _amount) external view returns (uint256);
 }

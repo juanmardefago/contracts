@@ -313,12 +313,11 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         // Move all signal from previous version to new version
         // NOTE: We will only do this as long as there is signal on the subgraph
         if (subgraphData.nSignal > 0) {
-            // Burn all version signal in the name pool for tokens (w/no slippage protection)
+            // Burn all version signal in the name pool for tokens
             // Sell all signal from the old deployment
             uint256 tokens = curation.burn(
                 subgraphData.subgraphDeploymentID,
-                subgraphData.vSignal,
-                0
+                subgraphData.vSignal
             );
 
             // Take the owner cut of the curation tax, add it to the total
@@ -367,8 +366,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         if (subgraphData.nSignal > 0) {
             subgraphData.withdrawableGRT = curation().burn(
                 subgraphData.subgraphDeploymentID,
-                subgraphData.vSignal,
-                0
+                subgraphData.vSignal
             );
         }
 
@@ -422,12 +420,10 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
      * @dev Burn signal for a subgraph and return the GRT.
      * @param _subgraphID Subgraph ID
      * @param _nSignal The amount of nSignal the nameCurator wants to burn
-     * @param _tokensOutMin Expected minimum amount of tokens to receive
      */
     function burnSignal(
         uint256 _subgraphID,
-        uint256 _nSignal,
-        uint256 _tokensOutMin
+        uint256 _nSignal
     ) external override notPartialPaused {
         // Subgraph checks
         SubgraphData storage subgraphData = _getSubgraphOrRevert(_subgraphID);
@@ -442,7 +438,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
 
         // Get tokens for name signal amount to burn
         uint256 vSignal = nSignalToVSignal(_subgraphID, _nSignal);
-        uint256 tokens = curation().burn(subgraphData.subgraphDeploymentID, vSignal, _tokensOutMin);
+        uint256 tokens = curation().burn(subgraphData.subgraphDeploymentID, vSignal);
 
         // Update pools
         subgraphData.vSignal = subgraphData.vSignal.sub(vSignal);
@@ -569,7 +565,7 @@ contract GNS is GNSV2Storage, GraphUpgradeable, IGNS, Multicall {
         // It does not make sense to convert signal from a disabled or non-existing one
         SubgraphData storage subgraphData = _getSubgraphOrRevert(_subgraphID);
         uint256 vSignal = nSignalToVSignal(_subgraphID, _nSignalIn);
-        uint256 tokensOut = curation().signalToTokens(subgraphData.subgraphDeploymentID, vSignal);
+        uint256 tokensOut = curation().signalToTokens(subgraphData.subgraphDeploymentID, vSignal, address(this));
         return (vSignal, tokensOut);
     }
 

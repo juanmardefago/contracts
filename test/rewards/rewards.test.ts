@@ -767,7 +767,7 @@ describe('Rewards', () => {
 
       // Remove all signal from the subgraph
       const curatorShares = await curation.getCuratorSignal(curator1.address, subgraphDeploymentID1)
-      await curation.connect(curator1.signer).burn(subgraphDeploymentID1, curatorShares, 0)
+      await curation.connect(curator1.signer).burn(subgraphDeploymentID1, curatorShares)
 
       // Close allocation. At this point rewards should be collected for that indexer
       await staking.connect(indexer1.signer).closeAllocation(allocationID, randomHexBytes())

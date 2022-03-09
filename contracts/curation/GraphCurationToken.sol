@@ -19,6 +19,9 @@ import "../governance/Governed.sol";
  * gas-saving purposes.
  */
 contract GraphCurationToken is ERC20Upgradeable, Governed {
+    // Bookkeeping for GRT deposits
+    mapping(address => uint256) public deposits;
+
     /**
      * @dev Graph Curation Token Contract initializer.
      * @param _owner Address of the contract issuing this token
@@ -32,9 +35,15 @@ contract GraphCurationToken is ERC20Upgradeable, Governed {
      * @dev Mint new tokens.
      * @param _to Address to send the newly minted tokens
      * @param _amount Amount of tokens to mint
+     * @param _grtDeposit Amount of GRT deposited to mint the GCS
      */
-    function mint(address _to, uint256 _amount) public onlyGovernor {
+    function mint(
+        address _to,
+        uint256 _amount,
+        uint256 _grtDeposit
+    ) public onlyGovernor {
         _mint(_to, _amount);
+        deposits[_to] += _grtDeposit;
     }
 
     /**
@@ -44,5 +53,23 @@ contract GraphCurationToken is ERC20Upgradeable, Governed {
      */
     function burnFrom(address _account, uint256 _amount) public onlyGovernor {
         _burn(_account, _amount);
+        deposits[_account] -= getDepositDelta(_account, _amount);
+    }
+
+    /**
+     * @dev Transfer tokens from the sender to an address.
+     * @param _recipient Address to where tokens will be sent
+     * @param _amount Amount of tokens to burn
+     */
+    function transfer(address _recipient, uint256 _amount) public virtual override returns (bool) {
+        _transfer(msg.sender, _recipient, _amount);
+        uint256 depositDelta = getDepositDelta(msg.sender, _amount);
+        deposits[msg.sender] -= depositDelta;
+        deposits[_recipient] += depositDelta;
+        return true;
+    }
+
+    function getDepositDelta(address _account, uint256 _amount) public view returns (uint256) {
+        return balanceOf(_account) == 0 ? 0 : (_amount / balanceOf(_account)) * deposits[_account];
     }
 }
