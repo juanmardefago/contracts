@@ -416,7 +416,7 @@ describe('Curation', () => {
     it('should allow to redeem *partially*', async function () {
       // Redeem just one signal
       const signalToRedeem = toGRT('1')
-      const expectedTokens = toGRT('532.455532033675866536')
+      const expectedTokens = toGRT('316.227766016837933000')
       await shouldBurn(signalToRedeem, expectedTokens)
     })
 
@@ -445,16 +445,6 @@ describe('Curation', () => {
         tokensToDeposit,
       )
       await shouldMint(tokensToDeposit, expectedSignal)
-    })
-
-    it('should revert redeem if over slippage', async function () {
-      const signalToRedeem = await curation.getCuratorSignal(curator.address, subgraphDeploymentID)
-      const expectedTokens = tokensToDeposit
-
-      const tx = curation
-        .connect(curator.signer)
-        .burn(subgraphDeploymentID, signalToRedeem)
-      await expect(tx).revertedWith('Slippage protection')
     })
 
     it('should not re-deploy the curation token when signal is reset', async function () {

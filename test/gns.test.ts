@@ -807,20 +807,6 @@ describe('GNS', () => {
         )
         await expect(tx).revertedWith('GNS: Curator cannot withdraw more nSignal than they have')
       })
-
-      it('reject burning if under slippage', async function () {
-        // Get current curator name signal
-        const curatorNSignal = await gns.getCuratorSignal(subgraph.id, other.address)
-
-        // Withdraw
-        const { 1: expectedTokens } = await gns.nSignalToTokens(subgraph.id, curatorNSignal)
-
-        // Force a revert by asking 1 more token than the function will return
-        const tx = gns
-          .connect(other.signer)
-          .burnSignal(subgraph.id, curatorNSignal)
-        await expect(tx).revertedWith('Slippage protection')
-      })
     })
 
     describe('withdraw()', async function () {

@@ -436,13 +436,24 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
         uint256 _signalIn,
         address _curator
     ) public view override returns (uint256) {
-        IGraphCurationToken gcs = pools[_subgraphDeploymentID].gcs;
+        CurationPool memory curationPool = pools[_subgraphDeploymentID];
         require(
-            gcs.totalSupply() >= _signalIn,
+            curationPool.tokens > 0,
+            "Subgraph deployment must be curated to perform calculations"
+        );
+        uint256 curationPoolSignal = getCurationPoolSignal(_subgraphDeploymentID);
+        require(
+            curationPoolSignal >= _signalIn,
             "Signal must be above or equal to signal issued in the curation pool"
         );
+        uint256 curatorSignal = getCuratorSignal(_curator, _subgraphDeploymentID);
+        uint256 poolTokens = curationPool.tokens;
 
-        return gcs.getDepositDelta(_curator, _signalIn);
+        uint256 royaltiesDelta = ((poolTokens - curationPool.gcs.totalDeposited()) *
+            (curatorSignal / curationPoolSignal));
+        uint256 depositDelta = curationPool.gcs.getDepositDelta(_curator, _signalIn);
+
+        return depositDelta + royaltiesDelta;
     }
 
     /**

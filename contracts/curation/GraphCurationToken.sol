@@ -22,6 +22,8 @@ contract GraphCurationToken is ERC20Upgradeable, Governed {
     // Bookkeeping for GRT deposits
     mapping(address => uint256) public deposits;
 
+    uint256 public totalDeposited;
+
     /**
      * @dev Graph Curation Token Contract initializer.
      * @param _owner Address of the contract issuing this token
@@ -44,6 +46,7 @@ contract GraphCurationToken is ERC20Upgradeable, Governed {
     ) public onlyGovernor {
         _mint(_to, _amount);
         deposits[_to] += _grtDeposit;
+        totalDeposited += _grtDeposit;
     }
 
     /**
@@ -52,8 +55,10 @@ contract GraphCurationToken is ERC20Upgradeable, Governed {
      * @param _amount Amount of tokens to burn
      */
     function burnFrom(address _account, uint256 _amount) public onlyGovernor {
+        uint256 delta = getDepositDelta(_account, _amount);
         _burn(_account, _amount);
-        deposits[_account] -= getDepositDelta(_account, _amount);
+        deposits[_account] -= delta;
+        totalDeposited -= delta;
     }
 
     /**
@@ -70,6 +75,11 @@ contract GraphCurationToken is ERC20Upgradeable, Governed {
     }
 
     function getDepositDelta(address _account, uint256 _amount) public view returns (uint256) {
-        return balanceOf(_account) == 0 ? 0 : (_amount / balanceOf(_account)) * deposits[_account];
+        uint256 divPrecisionOffset = 1000000000000000000;
+        return
+            balanceOf(_account) == 0
+                ? 0
+                : (((_amount * divPrecisionOffset) / (balanceOf(_account))) * deposits[_account]) /
+                    divPrecisionOffset;
     }
 }
