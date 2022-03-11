@@ -2,6 +2,7 @@
 
 pragma solidity ^0.7.6;
 
+import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
 import "../governance/Governed.sol";
@@ -19,6 +20,8 @@ import "../governance/Governed.sol";
  * gas-saving purposes.
  */
 contract GraphCurationToken is ERC20Upgradeable, Governed {
+    using SafeMath for uint256;
+
     // Bookkeeping for GRT deposits
     mapping(address => uint256) public deposits;
 
@@ -45,8 +48,8 @@ contract GraphCurationToken is ERC20Upgradeable, Governed {
         uint256 _grtDeposit
     ) public onlyGovernor {
         _mint(_to, _amount);
-        deposits[_to] += _grtDeposit;
-        totalDeposited += _grtDeposit;
+        deposits[_to] = deposits[_to].add(_grtDeposit);
+        totalDeposited = totalDeposited.add(_grtDeposit);
     }
 
     /**
@@ -57,8 +60,8 @@ contract GraphCurationToken is ERC20Upgradeable, Governed {
     function burnFrom(address _account, uint256 _amount) public onlyGovernor {
         uint256 delta = getDepositDelta(_account, _amount);
         _burn(_account, _amount);
-        deposits[_account] -= delta;
-        totalDeposited -= delta;
+        deposits[_account] = deposits[_account].sub(delta);
+        totalDeposited = totalDeposited.sub(delta);
     }
 
     /**
@@ -69,17 +72,13 @@ contract GraphCurationToken is ERC20Upgradeable, Governed {
     function transfer(address _recipient, uint256 _amount) public virtual override returns (bool) {
         _transfer(msg.sender, _recipient, _amount);
         uint256 depositDelta = getDepositDelta(msg.sender, _amount);
-        deposits[msg.sender] -= depositDelta;
-        deposits[_recipient] += depositDelta;
+        deposits[msg.sender] = deposits[msg.sender].sub(depositDelta);
+        deposits[_recipient] = deposits[_recipient].add(depositDelta);
         return true;
     }
 
     function getDepositDelta(address _account, uint256 _amount) public view returns (uint256) {
-        uint256 divPrecisionOffset = 1000000000000000000;
         return
-            balanceOf(_account) == 0
-                ? 0
-                : (((_amount * divPrecisionOffset) / (balanceOf(_account))) * deposits[_account]) /
-                    divPrecisionOffset;
+            balanceOf(_account) == 0 ? 0 : deposits[_account].mul(_amount).div(balanceOf(_account));
     }
 }

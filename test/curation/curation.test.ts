@@ -416,7 +416,7 @@ describe('Curation', () => {
     it('should allow to redeem *partially*', async function () {
       // Redeem just one signal
       const signalToRedeem = toGRT('1')
-      const expectedTokens = toGRT('316.227766016837933000')
+      const expectedTokens = toGRT('316.227766016837933299')
       await shouldBurn(signalToRedeem, expectedTokens)
     })
 

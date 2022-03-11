@@ -449,8 +449,10 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
         uint256 curatorSignal = getCuratorSignal(_curator, _subgraphDeploymentID);
         uint256 poolTokens = curationPool.tokens;
 
-        uint256 royaltiesDelta = ((poolTokens - curationPool.gcs.totalDeposited()) *
-            (curatorSignal / curationPoolSignal));
+        uint256 royaltiesDelta = poolTokens
+            .sub(curationPool.gcs.totalDeposited())
+            .mul(curatorSignal)
+            .div(curationPoolSignal);
         uint256 depositDelta = curationPool.gcs.getDepositDelta(_curator, _signalIn);
 
         return depositDelta + royaltiesDelta;
