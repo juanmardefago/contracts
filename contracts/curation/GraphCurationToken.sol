@@ -70,8 +70,8 @@ contract GraphCurationToken is ERC20Upgradeable, Governed {
      * @param _amount Amount of tokens to burn
      */
     function transfer(address _recipient, uint256 _amount) public virtual override returns (bool) {
-        _transfer(msg.sender, _recipient, _amount);
         uint256 depositDelta = getDepositDelta(msg.sender, _amount);
+        _transfer(msg.sender, _recipient, _amount);
         deposits[msg.sender] = deposits[msg.sender].sub(depositDelta);
         deposits[_recipient] = deposits[_recipient].add(depositDelta);
         return true;

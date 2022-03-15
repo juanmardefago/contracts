@@ -11,7 +11,7 @@ import { getAccounts, getChainID, toBN, toGRT, Account } from './lib/testHelpers
 const { AddressZero, MaxUint256 } = constants
 const { keccak256, SigningKey } = utils
 
-describe.only('GraphCurationToken', () => {
+describe('GraphCurationToken', () => {
   let me: Account
   let other: Account
   let governor: Account
@@ -98,7 +98,7 @@ describe.only('GraphCurationToken', () => {
         const beforeTokens = await gcs.balanceOf(me.address)
         const beforeDeposits = await gcs.deposits(me.address)
 
-        const tokensToBurn = toGRT('50') // Burn half, so deposit delta should be half of the pre-deposited
+        const tokensToBurn = toGRT('50')
         const depositDeltaForBurning = await gcs.getDepositDelta(me.address, tokensToBurn)
 
         const tx = gcs.connect(governor.signer).burnFrom(me.address, tokensToBurn)
@@ -113,43 +113,57 @@ describe.only('GraphCurationToken', () => {
     })
   })
 
-  // describe('transfer', async function () {
-  //   context('if NOT governor', function () {
-  //     it('should revert on burn', async function () {
-  //       const tokensToMint = toGRT('100')
-  //       const tokensToDeposit = toGRT('10')
-  //       await gcs.connect(governor.signer).mint(me.address, tokensToMint, tokensToDeposit)
-  //
-  //       const tokensToBurn = toGRT('100')
-  //       const tx = gcs.connect(me.signer).burnFrom(me.address, tokensToBurn)
-  //       await expect(tx).revertedWith('Only Governor can call')
-  //     })
-  //
-  //
-  //
-  //           it('should transfer', async function () {
-  //             const tokensToMint = toGRT('100')
-  //             const tokensToDeposit = toGRT('10')
-  //             await gcs.connect(governor.signer).mint(me.address, tokensToMint, tokensToDeposit)
-  //
-  //             const tokensToBurn = toGRT('100')
-  //             const tx = gcs.connect(me.signer).burnFrom(me.address, tokensToBurn)
-  //             await expect(tx).revertedWith('Only Governor can call')
-  //           })
-  //   })
-  //
-  //   context('if governor', function () {
-  //     it('should mint', async function () {
-  //       const beforeTokens = await gcs.balanceOf(me.address)
-  //
-  //       const tokensToMint = toGRT('100')
-  //       const tokensToDeposit = toGRT('10')
-  //       const tx = gcs.connect(governor.signer).mint(me.address, tokensToMint, tokensToDeposit)
-  //       await expect(tx).emit(gcs, 'Transfer').withArgs(AddressZero, me.address, tokensToMint)
-  //
-  //       const afterTokens = await gcs.balanceOf(me.address)
-  //       expect(afterTokens).eq(beforeTokens.add(tokensToMint))
-  //     })
-  //   })
-  // })
+  describe('transfer', async function () {
+    const tokensPreMinted = toGRT('100')
+    const tokensPreDeposited = toGRT('10')
+
+    beforeEach(async function () {
+      await gcs.connect(governor.signer).mint(me.address, tokensPreMinted, tokensPreDeposited)
+      await gcs.connect(governor.signer).mint(other.address, tokensPreMinted, tokensPreDeposited)
+    })
+
+    it('should transfer fully correctly also moving the deposit', async function () {
+      const beforeTokensMe = await gcs.balanceOf(me.address)
+      const beforeDepositsMe = await gcs.deposits(me.address)
+      const beforeTokensOther = await gcs.balanceOf(other.address)
+      const beforeDepositsOther = await gcs.deposits(other.address)
+
+      const tx = gcs.connect(me.signer).transfer(other.address, tokensPreMinted)
+      await expect(tx).emit(gcs, 'Transfer').withArgs(me.address, other.address, tokensPreMinted)
+
+      const afterTokensMe = await gcs.balanceOf(me.address)
+      const afterDepositsMe = await gcs.deposits(me.address)
+      const afterTokensOther = await gcs.balanceOf(other.address)
+      const afterDepositsOther = await gcs.deposits(other.address)
+
+      expect(afterTokensMe).eq(beforeTokensMe.sub(tokensPreMinted))
+      expect(afterTokensOther).eq(beforeTokensOther.add(tokensPreMinted))
+
+      expect(afterDepositsMe).eq(beforeDepositsMe.sub(tokensPreDeposited))
+      expect(afterDepositsOther).eq(beforeDepositsOther.add(tokensPreDeposited))
+    })
+
+    it('should burn partially removing the proportional deposit', async function () {
+      const beforeTokensMe = await gcs.balanceOf(me.address)
+      const beforeDepositsMe = await gcs.deposits(me.address)
+      const beforeTokensOther = await gcs.balanceOf(other.address)
+      const beforeDepositsOther = await gcs.deposits(other.address)
+
+      const tokensToTransfer = toGRT('50')
+      const depositDeltaForTransfer = await gcs.getDepositDelta(me.address, tokensToTransfer)
+      const tx = gcs.connect(me.signer).transfer(other.address, tokensToTransfer)
+      await expect(tx).emit(gcs, 'Transfer').withArgs(me.address, other.address, tokensToTransfer)
+
+      const afterTokensMe = await gcs.balanceOf(me.address)
+      const afterDepositsMe = await gcs.deposits(me.address)
+      const afterTokensOther = await gcs.balanceOf(other.address)
+      const afterDepositsOther = await gcs.deposits(other.address)
+
+      expect(afterTokensMe).eq(beforeTokensMe.sub(tokensToTransfer))
+      expect(afterTokensOther).eq(beforeTokensOther.add(tokensToTransfer))
+
+      expect(afterDepositsMe).eq(beforeDepositsMe.sub(depositDeltaForTransfer))
+      expect(afterDepositsOther).eq(beforeDepositsOther.add(depositDeltaForTransfer))
+    })
+  })
 })
