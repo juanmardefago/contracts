@@ -58,7 +58,7 @@ contract GraphCurationToken is ERC20Upgradeable, Governed {
      * @param _amount Amount of tokens to burn
      */
     function burnFrom(address _account, uint256 _amount) public onlyGovernor {
-        uint256 delta = getDepositDelta(_account, _amount);
+        uint256 delta = grtValueOf(_account, _amount);
         _burn(_account, _amount);
         deposits[_account] = deposits[_account].sub(delta);
         totalDeposited = totalDeposited.sub(delta);
@@ -70,14 +70,14 @@ contract GraphCurationToken is ERC20Upgradeable, Governed {
      * @param _amount Amount of tokens to burn
      */
     function transfer(address _recipient, uint256 _amount) public virtual override returns (bool) {
-        uint256 depositDelta = getDepositDelta(msg.sender, _amount);
+        uint256 depositDelta = grtValueOf(msg.sender, _amount);
         _transfer(msg.sender, _recipient, _amount);
         deposits[msg.sender] = deposits[msg.sender].sub(depositDelta);
         deposits[_recipient] = deposits[_recipient].add(depositDelta);
         return true;
     }
 
-    function getDepositDelta(address _account, uint256 _amount) public view returns (uint256) {
+    function grtValueOf(address _account, uint256 _amount) public view returns (uint256) {
         return
             balanceOf(_account) == 0 ? 0 : deposits[_account].mul(_amount).div(balanceOf(_account));
     }
