@@ -11,7 +11,7 @@ import { getAccounts, getChainID, toBN, toGRT, Account } from './lib/testHelpers
 const { AddressZero, MaxUint256 } = constants
 const { keccak256, SigningKey } = utils
 
-describe.only('GraphCurationToken', () => {
+describe('GraphCurationToken', () => {
   let me: Account
   let other: Account
   let governor: Account
