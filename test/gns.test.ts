@@ -425,7 +425,7 @@ describe('GNS', () => {
     )
 
     // Send tx
-    const tx = gns.connect(account.signer).burnSignal(subgraphID, beforeUsersNSignal, 0)
+    const tx = gns.connect(account.signer).burnSignal(subgraphID, beforeUsersNSignal)
     await expect(tx)
       .emit(gns, 'SignalBurned')
       .withArgs(subgraphID, account.address, beforeUsersNSignal, vSignalExpected, tokensExpected)
@@ -795,7 +795,7 @@ describe('GNS', () => {
       it('should fail when name signal is disabled', async function () {
         await deprecateSubgraph(me, subgraph.id)
         // just test 1 since it will fail
-        const tx = gns.connect(me.signer).burnSignal(subgraph.id, 1, 0)
+        const tx = gns.connect(me.signer).burnSignal(subgraph.id, 1)
         await expect(tx).revertedWith('GNS: Must be active')
       })
 
@@ -803,24 +803,9 @@ describe('GNS', () => {
         const tx = gns.connect(me.signer).burnSignal(
           subgraph.id,
           // 1000000 * 10^18 nSignal is a lot, and will cause fail
-          toBN('1000000000000000000000000'),
-          0,
+          toBN('1000000000000000000000000')
         )
         await expect(tx).revertedWith('GNS: Curator cannot withdraw more nSignal than they have')
-      })
-
-      it('reject burning if under slippage', async function () {
-        // Get current curator name signal
-        const curatorNSignal = await gns.getCuratorSignal(subgraph.id, other.address)
-
-        // Withdraw
-        const { 1: expectedTokens } = await gns.nSignalToTokens(subgraph.id, curatorNSignal)
-
-        // Force a revert by asking 1 more token than the function will return
-        const tx = gns
-          .connect(other.signer)
-          .burnSignal(subgraph.id, curatorNSignal, expectedTokens.add(1))
-        await expect(tx).revertedWith('Slippage protection')
       })
     })
 

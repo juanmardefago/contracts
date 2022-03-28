@@ -2,6 +2,7 @@
 
 pragma solidity ^0.7.6;
 
+import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
 import "../governance/Governed.sol";
@@ -19,6 +20,13 @@ import "../governance/Governed.sol";
  * gas-saving purposes.
  */
 contract GraphCurationToken is ERC20Upgradeable, Governed {
+    using SafeMath for uint256;
+
+    // Bookkeeping for GRT deposits
+    mapping(address => uint256) public deposits;
+
+    uint256 public totalDeposited;
+
     /**
      * @dev Graph Curation Token Contract initializer.
      * @param _owner Address of the contract issuing this token
@@ -32,9 +40,16 @@ contract GraphCurationToken is ERC20Upgradeable, Governed {
      * @dev Mint new tokens.
      * @param _to Address to send the newly minted tokens
      * @param _amount Amount of tokens to mint
+     * @param _grtDeposit Amount of GRT deposited to mint the GCS
      */
-    function mint(address _to, uint256 _amount) public onlyGovernor {
+    function mint(
+        address _to,
+        uint256 _amount,
+        uint256 _grtDeposit
+    ) public onlyGovernor {
         _mint(_to, _amount);
+        deposits[_to] = deposits[_to].add(_grtDeposit);
+        totalDeposited = totalDeposited.add(_grtDeposit);
     }
 
     /**
@@ -43,6 +58,27 @@ contract GraphCurationToken is ERC20Upgradeable, Governed {
      * @param _amount Amount of tokens to burn
      */
     function burnFrom(address _account, uint256 _amount) public onlyGovernor {
+        uint256 delta = grtValueOf(_account, _amount);
         _burn(_account, _amount);
+        deposits[_account] = deposits[_account].sub(delta);
+        totalDeposited = totalDeposited.sub(delta);
+    }
+
+    /**
+     * @dev Transfer tokens from the sender to an address.
+     * @param _recipient Address to where tokens will be sent
+     * @param _amount Amount of tokens to burn
+     */
+    function transfer(address _recipient, uint256 _amount) public virtual override returns (bool) {
+        uint256 depositDelta = grtValueOf(msg.sender, _amount);
+        _transfer(msg.sender, _recipient, _amount);
+        deposits[msg.sender] = deposits[msg.sender].sub(depositDelta);
+        deposits[_recipient] = deposits[_recipient].add(depositDelta);
+        return true;
+    }
+
+    function grtValueOf(address _account, uint256 _amount) public view returns (uint256) {
+        return
+            balanceOf(_account) == 0 ? 0 : deposits[_account].mul(_amount).div(balanceOf(_account));
     }
 }

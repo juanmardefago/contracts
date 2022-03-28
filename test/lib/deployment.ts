@@ -13,6 +13,7 @@ import { DisputeManager } from '../../build/types/DisputeManager'
 import { EpochManager } from '../../build/types/EpochManager'
 import { GNS } from '../../build/types/GNS'
 import { GraphToken } from '../../build/types/GraphToken'
+import { GraphCurationToken } from '../../build/types/GraphCurationToken'
 import { ServiceRegistry } from '../../build/types/ServiceRegistry'
 import { Staking } from '../../build/types/Staking'
 import { RewardsManager } from '../../build/types/RewardsManager'
@@ -96,6 +97,10 @@ export async function deployGRT(deployer: Signer): Promise<GraphToken> {
     deployer,
     defaults.token.initialSupply.toString(),
   ) as unknown as Promise<GraphToken>
+}
+
+export async function deployGCS(deployer: Signer): Promise<GraphCurationToken> {
+  return deployContract('GraphCurationToken', deployer) as unknown as Promise<GraphCurationToken>
 }
 
 export async function deployGDAI(deployer: Signer): Promise<GDAI> {

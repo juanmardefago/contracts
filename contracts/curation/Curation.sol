@@ -257,7 +257,7 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
 
         // Update curation pool
         curationPool.tokens = curationPool.tokens.add(_tokensIn.sub(curationTax));
-        curationPool.gcs.mint(curator, signalOut);
+        curationPool.gcs.mint(curator, signalOut, _tokensIn.sub(curationTax));
 
         emit Signalled(curator, _subgraphDeploymentID, _tokensIn, signalOut, curationTax);
 
@@ -269,14 +269,14 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
      * @notice Burn _signal from the SubgraphDeployment curation pool
      * @param _subgraphDeploymentID SubgraphDeployment the curator is returning signal
      * @param _signalIn Amount of signal to return
-     * @param _tokensOutMin Expected minimum amount of tokens to receive
      * @return Tokens returned
      */
-    function burn(
-        bytes32 _subgraphDeploymentID,
-        uint256 _signalIn,
-        uint256 _tokensOutMin
-    ) external override notPartialPaused returns (uint256) {
+    function burn(bytes32 _subgraphDeploymentID, uint256 _signalIn)
+        external
+        override
+        notPartialPaused
+        returns (uint256)
+    {
         address curator = msg.sender;
 
         // Validations
@@ -286,11 +286,9 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
             "Cannot burn more signal than you own"
         );
 
-        // Get the amount of tokens to refund based on returned signal
-        uint256 tokensOut = signalToTokens(_subgraphDeploymentID, _signalIn);
-
-        // Slippage protection
-        require(tokensOut >= _tokensOutMin, "Slippage protection");
+        // Get the amount of tokens to refund based on the amount
+        // deposited by the curator and unsignal amount
+        uint256 tokensOut = signalToTokens(_subgraphDeploymentID, _signalIn, curator);
 
         // Trigger update rewards calculation
         _updateRewards(_subgraphDeploymentID);
@@ -433,30 +431,31 @@ contract Curation is CurationV1Storage, GraphUpgradeable {
      * @param _signalIn Amount of signal to burn
      * @return Amount of tokens to get for an amount of signal
      */
-    function signalToTokens(bytes32 _subgraphDeploymentID, uint256 _signalIn)
-        public
-        view
-        override
-        returns (uint256)
-    {
+    function signalToTokens(
+        bytes32 _subgraphDeploymentID,
+        uint256 _signalIn,
+        address _curator
+    ) public view override returns (uint256) {
         CurationPool memory curationPool = pools[_subgraphDeploymentID];
-        uint256 curationPoolSignal = getCurationPoolSignal(_subgraphDeploymentID);
         require(
             curationPool.tokens > 0,
             "Subgraph deployment must be curated to perform calculations"
         );
+        uint256 curationPoolSignal = getCurationPoolSignal(_subgraphDeploymentID);
         require(
             curationPoolSignal >= _signalIn,
             "Signal must be above or equal to signal issued in the curation pool"
         );
+        uint256 curatorSignal = getCuratorSignal(_curator, _subgraphDeploymentID);
+        uint256 poolTokens = curationPool.tokens;
 
-        return
-            BancorFormula(bondingCurve).calculateSaleReturn(
-                curationPoolSignal,
-                curationPool.tokens,
-                curationPool.reserveRatio,
-                _signalIn
-            );
+        uint256 royaltiesOf = poolTokens
+            .sub(curationPool.gcs.totalDeposited())
+            .mul(curatorSignal)
+            .div(curationPoolSignal);
+        uint256 grtValueOf = curationPool.gcs.grtValueOf(_curator, _signalIn);
+
+        return grtValueOf.add(royaltiesOf);
     }
 
     /**
